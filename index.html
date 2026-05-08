@@ -175,19 +175,16 @@ jsPsych.data.addProperties({
 
 const preload_trial = {
   type: jsPsychPreload,
-  images: all_images, // This uses the list we just made in Section G
+  images: all_images, 
   message: "Loading images, please wait...",
   show_progress_bar: true,
   auto_preload: true,
-  
-  // This stops participants from starting with blank screens
   continue_after_error: false, 
-  
-  error_message: "An image failed to load. Please refresh the page.",
+  error_message: "An image failed to load. Please refresh.",
   on_error: function(file) {
     console.log('Error loading: ', file);
   }
-};
+}; // <--- Make sure this semicolon and brace are here!
 
 
 /* =========================================================================
@@ -460,18 +457,14 @@ function make_trial(stim) {
    SECTION G — BUILD THE FULL TRIAL LIST
    ========================================================================= */
 
-// Combine emotion stimuli with fillers
-const all_items = STIMULI.concat(FILLERS);
+// MUST BE BEFORE main_trials
+const all_images = STIMULI.concat(FILLERS).map(s => IMAGE_FOLDER + s);
 
-// Shuffle the order so each participant sees a different sequence
+const all_items = STIMULI.concat(FILLERS);
 const trial_order = jsPsych.randomization.shuffle(all_items);
 
-// Flatten each trial into the master timeline
 let main_trials = [];
 trial_order.forEach(s => { main_trials = main_trials.concat(make_trial(s)); });
-
-// Combine STIMULI and FILLERS and add the folder path for the preloader
-const all_images = STIMULI.concat(FILLERS).map(s => IMAGE_FOLDER + s);
 
 
 /* =========================================================================
