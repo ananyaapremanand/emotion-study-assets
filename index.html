@@ -47,7 +47,7 @@
 
 // (A.1) DataPipe experiment ID — replace with the ID you obtain after
 // creating an experiment at https://pipe.jspsych.org/
-const DATAPIPE_EXPERIMENT_ID = "lYIFMlnHKJut";
+const DATAPIPE_EXPERIMENT_ID = "pd5IR9Zhkri7";
 
 // (A.2) Path to where your stimulus images live.
 // The images must be placed inside a folder called "stimuli" sitting next to
@@ -538,7 +538,7 @@ const debrief = {
 const save_data = {
   type: jsPsychPipe,
   action: "save",
-  experiment_id: "lYIFMlnHKJut", // Your Experiment ID from DataPipe
+  experiment_id: "pd5IR9Zhkri7", // New Experiment ID from DataPipe
   filename: `${participant_id}.csv`,
   data_string: () => jsPsych.data.get().csv()
 };
