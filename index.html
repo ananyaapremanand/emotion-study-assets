@@ -100,6 +100,9 @@ const FILLERS = [
   { code: "filler_fan", sex: "object", emotion: "filler" }
 ];
 
+// Define the full image path list at the top so Section C can see it
+const all_images = STIMULI.concat(FILLERS).map(s => IMAGE_FOLDER + s.code + IMAGE_EXTENSION);
+
 // (A.5) Timing parameters (milliseconds).
 const FIXATION_MS = 500;
 const STIMULUS_MS = 2000;
@@ -452,20 +455,17 @@ function make_trial(stim) {
   return [fixation, image, blank, emotion_choice, intensity, gender_check];
 }
 
-
 /* =========================================================================
    SECTION G — BUILD THE FULL TRIAL LIST
    ========================================================================= */
 
-// MUST BE BEFORE main_trials
-const all_images = STIMULI.concat(FILLERS).map(s => IMAGE_FOLDER + s);
+// REMOVE the "const all_images" line from here. It is now at the top.
 
 const all_items = STIMULI.concat(FILLERS);
 const trial_order = jsPsych.randomization.shuffle(all_items);
 
 let main_trials = [];
 trial_order.forEach(s => { main_trials = main_trials.concat(make_trial(s)); });
-
 
 /* =========================================================================
    SECTION H — PRACTICE TRIAL (one filler so participants learn the flow)
