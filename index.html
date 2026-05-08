@@ -170,18 +170,23 @@ jsPsych.data.addProperties({
 
 
 /* =========================================================================
-   SECTION C — PRELOAD IMAGES
-   Browsers cache images so 2-second presentation is accurate.
+   SECTION C — PRELOADING
    ========================================================================= */
-
-const all_images = STIMULI.concat(FILLERS).map(s => IMAGE_FOLDER + s.code + IMAGE_EXTENSION);
 
 const preload_trial = {
   type: jsPsychPreload,
-  images: all_images,
-  message: "Loading images, please wait …",
+  images: all_images, // This uses the list we just made in Section G
+  message: "Loading images, please wait...",
   show_progress_bar: true,
-  continue_after_error: true   // do not crash if one image is missing
+  auto_preload: true,
+  
+  // This stops participants from starting with blank screens
+  continue_after_error: false, 
+  
+  error_message: "An image failed to load. Please refresh the page.",
+  on_error: function(file) {
+    console.log('Error loading: ', file);
+  }
 };
 
 
@@ -464,6 +469,9 @@ const trial_order = jsPsych.randomization.shuffle(all_items);
 // Flatten each trial into the master timeline
 let main_trials = [];
 trial_order.forEach(s => { main_trials = main_trials.concat(make_trial(s)); });
+
+// Combine STIMULI and FILLERS and add the folder path for the preloader
+const all_images = STIMULI.concat(FILLERS).map(s => IMAGE_FOLDER + s);
 
 
 /* =========================================================================
