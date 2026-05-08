@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Body Posture Emotion Recognition Study</title>
+
+  <!-- jsPsych core (v7.3) -->
+  <script src="https://unpkg.com/jspsych@7.3.4"></script>
+
+  <!-- jsPsych plugins used in this study -->
+  <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.1.3"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-html-button-response@1.1.3"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-image-keyboard-response@1.1.3"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-image-button-response@1.1.3"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-survey-html-form@1.0.3"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-survey-likert@1.1.2"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-fullscreen@1.2.0"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-preload@1.1.2"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-call-function@1.1.2"></script>
+
+  <!-- DataPipe (Adam Green, Newcastle) for saving data to OSF.
+       Comment this out and use the local CSV download fallback at the end if not using DataPipe. -->
+    <script src="https://unpkg.com/@jspsych-contrib/plugin-pipe"></script>
+
+  <link rel="stylesheet" href="https://unpkg.com/jspsych@7.3.4/css/jspsych.css">
+
+  <style>
+    body { background-color: #f4f4f4; font-family: Arial, sans-serif; }
+    .jspsych-content { max-width: 900px; }
+    .stim-img { max-height: 400px; }
+    .consent-box {
+      max-width: 700px; text-align: left; line-height: 1.5;
+      background: white; padding: 20px; border: 1px solid #ccc; border-radius: 8px;
+    }
+    .instructions { text-align: left; line-height: 1.6; max-width: 700px; margin: auto; }
+    .fixation { font-size: 60px; }
+  </style>
+</head>
+
+<body></body>
+
+<script>
+/* =========================================================================
+   SECTION A — CONFIGURATION
+   Edit these values to customise the study.
+   ========================================================================= */
+
+// (A.1) DataPipe experiment ID — replace with the ID you obtain after
+// creating an experiment at https://pipe.jspsych.org/
+const DATAPIPE_EXPERIMENT_ID = "lYIFMlnHKJut";
+
+// (A.2) Path to where your stimulus images live.
+// The images must be placed inside a folder called "stimuli" sitting next to
+// this HTML file. The image filename must equal the stim_code + ".jpg"
+// (e.g. "F03AN.jpg"). Change the extension below if your images are .png.
+// Replace the old local path with your new GitHub path
+const IMAGE_FOLDER = "https://raw.githubusercontent.com/ananyaapremanand/emotion-study-assets/main/stimuli/";
+const IMAGE_EXTENSION = ".jpg";
+
+// (A.3) Stimulus list. Selection rule (see project documentation for full
+// justification):
+//   1. ceiling validation accuracy in the BEAST normative sample (1.00),
+//      relaxed only for the male × happy cell where BEAST contains only
+//      two ceiling items — the next-highest available items (~0.89-0.95)
+//      are used to keep cell n = 4;
+//   2. no two items from the same actor-emotion pair (i.e. pose variants
+//      such as F01SA2 / M02HA2 are excluded) to avoid pseudo-replication;
+//   3. within each sex, actors are kept distinct across the four emotion
+//      cells as far as the database allows. Female cells use 16 unique
+//      actors across 16 slots; male cells use 15 unique actors (M02
+//      unavoidably appears in two cells given BEAST's constrained pool).
+const STIMULI = [
+  // female × angry  
+  { code: "F11AN", sex: "female", emotion: "angry"   },
+  // female × fearful 
+  { code: "F06FE", sex: "female", emotion: "fearful" },
+  // female × happy
+  { code: "F02HA", sex: "female", emotion: "happy"   },
+  // female × sad
+  { code: "F09SA", sex: "female", emotion: "sad"     },
+  // male × angry 
+  { code: "M03AN", sex: "male", emotion: "angry"     },
+  // male × fearful
+  { code: "M04FE", sex: "male", emotion: "fearful"   },
+  // male × happy 
+  { code: "M08HA", sex: "male", emotion: "happy"     },
+  // male × sad
+  { code: "M01SA", sex: "male", emotion: "sad"       },
+];
+
+// (A.4) Filler images. Same folder, same extension. Place neutral object
+// images (chair, lamp, kettle …) here. They will be interleaved randomly.
+const FILLERS = [
+  { code: "filler_chair",  sex: "object", emotion: "filler" },
+  { code: "filler_lamp",   sex: "object", emotion: "filler" },
+  { code: "filler_kettle", sex: "object", emotion: "filler" },
+  { code: "filler_book",   sex: "object", emotion: "filler" },
+  { code: "filler_clock",  sex: "object", emotion: "filler" },
+  { code: "filler_vase", sex: "object", emotion: "filler" },
+  { code: "filler_fan", sex: "object", emotion: "filler" }
+];
+
+// (A.5) Timing parameters (milliseconds).
+const FIXATION_MS = 500;
+const STIMULUS_MS = 2000;
+const BLANK_MS    = 1000;
+
+// (A.6) Response options shown to the participant.
+//
+// Six labels, of which four correspond to BEAST stimulus categories
+// (Happy, Sad, Angry, Fearful) and two are RESPONSE-ONLY
+// self-conscious-emotion categories with no BEAST stimulus exemplars
+// (Pride, Shame). Pride and shame are included as response options
+// in order to test whether observers spontaneously attribute these
+// dominance/submission-coded emotions to bodies posed for other
+// emotions, and whether such attributions are systematically modulated
+// by the perceived sex of the body (Tracy & Robins, 2007; Tracy &
+// Matsumoto, 2008). The design follows the free-response logic of
+// Russell (1994) and Nelson & Russell (2013) in which the response
+// space is broader than the stimulus space precisely so that
+// mis-attributions can be observed and analysed.
+//
+// Button order is randomised per participant to control for position
+// effects (see SECTION F). To change the wording of a label, edit the
+// EMOTION_OPTIONS array AND the EMOTION_TO_CODE mapping below.
+const EMOTION_OPTIONS = ["Happy", "Sad", "Angry", "Fearful", "Pride", "Shame"];
+
+// Map participant-facing labels to internal emotion codes used for
+// scoring and analysis. Pride and shame map to themselves and have no stimulus exemplar (they will
+// never be "correct" against an intended emotion, by design).
+const EMOTION_TO_CODE = {
+  Happy:   "happy",
+  Sad:     "sad",
+  Angry:   "angry",
+  Fearful: "fearful",
+  Pride:   "pride",
+  Shame:   "shame"
+};
+
+// Labels that are response-only (no BEAST stimulus). Used for tagging
+// trials in the data file as "self-conscious emotion attribution".
+const SELF_CONSCIOUS_LABELS = new Set(["Pride", "Shame"]);
+
+
+/* =========================================================================
+   SECTION B — INITIALISE jsPsych
+   ========================================================================= */
+
+const jsPsych = initJsPsych({
+  on_finish: function () {
+    // After the experiment ends, the participant sees a thank-you screen
+    // (defined later). Data is saved by the DataPipe trial just before this.
+  }
+});
+
+// Generate a participant ID (used in filename and stored in every row).
+const participant_id = jsPsych.randomization.randomID(8);
+jsPsych.data.addProperties({ participant_id: participant_id });
+
+// Capture Prolific URL parameters when present (PROLIFIC_PID, STUDY_ID,
+// SESSION_ID). These travel into every row of the CSV so completed
+// sessions can be matched back to Prolific records. Empty string when
+// running outside Prolific (e.g. local pilot, Krea word-of-mouth).
+const _url = new URLSearchParams(window.location.search);
+jsPsych.data.addProperties({
+  prolific_pid:        _url.get("PROLIFIC_PID")  || "",
+  prolific_study_id:   _url.get("STUDY_ID")      || "",
+  prolific_session_id: _url.get("SESSION_ID")    || ""
+});
+
+
+/* =========================================================================
+   SECTION C — PRELOAD IMAGES
+   Browsers cache images so 2-second presentation is accurate.
+   ========================================================================= */
+
+const all_images = STIMULI.concat(FILLERS).map(s => IMAGE_FOLDER + s.code + IMAGE_EXTENSION);
+
+const preload_trial = {
+  type: jsPsychPreload,
+  images: all_images,
+  message: "Loading images, please wait …",
+  show_progress_bar: true,
+  continue_after_error: true   // do not crash if one image is missing
+};
+
+
+/* =========================================================================
+   SECTION D — WELCOME, CONSENT, DEMOGRAPHICS
+   ========================================================================= */
+
+const welcome = {
+  type: jsPsychHtmlButtonResponse,
+  stimulus: `
+    <h2>Body Posture Emotion Recognition Study</h2>
+    <p>Thank you for taking part. The study takes about 10 minutes.</p>
+    <p>Please use a laptop or desktop computer with a stable internet connection.</p>`,
+  choices: ["Continue"]
+};
+
+const consent = {
+  type: jsPsychHtmlButtonResponse,
+  stimulus: `
+    <div class="consent-box">
+      <h3>Informed Consent</h3>
+      <p>We are students from Krea University, currently exploring a Psychological Research Study under the guidance of Dr. Rakesh Sengupta. 
+         The purpose of this study is to understand emotions in relation to bodily postures. 
+        Your participation in this study is entirely voluntary and you may refuse to complete the study at any point during the experiment, 
+        or refuse to answer any questions with which you are uncomfortable. 
+        You may also stop at any time and ask the researcher any questions you may have.</p>
+      <p>Your name will never be connected to your results or to your responses on the questionnaires; instead, a number will be used for 
+        identification purposes. The data we collect will be stored in our database for two years post the conduct of our study as per 
+        standard regulations, post which, it will be deleted. Your name, in this form, is only required for your consent.</p>
+      <p>Information that would make it possible to identify you or any other participant will never be included in any sort of report. 
+        The data will be accessible only to those working on the project. At this time you may ask any questions you may have regarding this 
+        study.</p>
+        <p>By clicking <b>I agree</b> below you confirm that you
+         are at least 15 years old and consent to take part.</p>
+    </div>`,
+  choices: ["I agree", "I do not wish to take part"],
+  on_finish: function (data) {
+    if (data.response === 1) jsPsych.endExperiment("Thank you. The study has ended.");
+  }
+};
+
+const demographics = {
+  type: jsPsychSurveyHtmlForm,
+  preamble: "<h3>About you</h3><p>Please complete the following before starting.</p>",
+  html: `
+    <p>Age (years): <input name="age" type="number" min="15" max="99" required></p>
+    <p>Sex assigned at birth:
+       <select name="sex" required>
+         <option value="">— select —</option>
+         <option value="female">Female</option>
+         <option value="male">Male</option>
+         <option value="intersex">Intersex / other</option>
+         <option value="no_answer">Prefer not to say</option>
+       </select>
+    </p>
+    <p>Gender identity:
+       <select name="gender" required>
+         <option value="">— select —</option>
+         <option value="woman">Woman</option>
+         <option value="man">Man</option>
+         <option value="non_binary">Non-binary</option>
+         <option value="other">Self-describe / other</option>
+         <option value="no_answer">Prefer not to say</option>
+       </select>
+    </p>
+    <p>Country of residence: <input name="country" type="text" required></p>`,
+  on_finish: function (data) {
+    const r = data.response;
+    jsPsych.data.addProperties({
+      age:     r.age,
+      p_sex:   r.sex,
+      p_gender: r.gender,
+      country: r.country
+    });
+  }
+};
+
+
+/* =========================================================================
+   SECTION E — INSTRUCTIONS AND ENTER FULLSCREEN
+   ========================================================================= */
+
+const enter_fullscreen = {
+  type: jsPsychFullscreen,
+  fullscreen_mode: true,
+  message: "<p>The experiment will now switch to full-screen mode. Click the button to continue.</p>"
+};
+
+const instructions = {
+  type: jsPsychHtmlButtonResponse,
+  stimulus: `
+    <div class="instructions">
+      <h3>Instructions</h3>
+      <p>On each trial you will see a body posture for two seconds.</p>
+      <p>After the image disappears you will be asked three questions:</p>
+      <ol>
+        <li>Which emotion does the body express? Six options will be shown:<br>
+            <span style="font-style: italic; margin-left: 20px;"><b>Happy, Sad, Angry, Fearful, Pride, Shame</b></span>.</li>
+        <li>How intense is that emotion? (1 = very weak, 5 = very strong)</li>
+        <li>Did the body appear male or female?</li>
+      </ol>
+      <p>Some images may not match any of the labels perfectly. In that case,
+         pick the option that comes closest to your first impression. There
+         are no right or wrong answers.</p>
+      <p>A few non-body images (objects) are mixed in. For those, simply
+         click <b>Other / not a person</b> when it appears.</p>
+    </div>`,
+  choices: ["Continue"]
+};
+
+// Brief orientation screen with one-sentence glosses for each emotion
+// label. This is intended to reduce label-comprehension noise,
+// particularly for the self-conscious-emotion labels (Pride, Shame),
+// which carry stronger evaluative connotations in colloquial usage than
+// in the academic literature.
+const label_orientation = {
+  type: jsPsychHtmlButtonResponse,
+  stimulus: `
+    <div class="instructions">
+      <h3>A note on the six emotion labels</h3>
+      <p>Below is a brief reminder of what each label refers to in this
+         study. You will not need to memorise these — they are simply
+         here so that the meaning of each option is clear.</p>
+      <ul>
+        <li><b>Happy</b> — a feeling of joy, cheerfulness or contentment.</li>
+        <li><b>Sad</b> — a feeling of sorrow, low mood or grief.</li>
+        <li><b>Angry</b> — a feeling of strong displeasure or hostility.</li>
+        <li><b>Fearful</b> — a feeling of being afraid, scared, or terrified.</li>
+        <li><b>Pride</b> — a feeling of accomplishment or self-confidence,
+            often associated with success or achievement.</li>
+        <li><b>Shame</b> — a feeling of having done something wrong or
+            of being seen as inadequate.</li>
+      </ul>
+      <p>Click below when you are ready to start.</p>
+    </div>`,
+  choices: ["I am ready to begin"]
+};
+
+
+/* =========================================================================
+   SECTION F — A SINGLE TRIAL (built as a small timeline)
+   ========================================================================= */
+
+// Per-participant randomised order of the six emotion labels. The same
+// order is used on every trial for a given participant (so they are
+// not relearning the layout), but the order differs between
+// participants. This controls for position effects (preferences for
+// leftmost / middle buttons) without introducing within-subject noise.
+const PARTICIPANT_EMOTION_ORDER =
+  jsPsych.randomization.shuffle(EMOTION_OPTIONS.slice());
+const PARTICIPANT_BUTTONS =
+  PARTICIPANT_EMOTION_ORDER.concat(["Other / not a person"]);
+jsPsych.data.addProperties({
+  emotion_button_order: PARTICIPANT_EMOTION_ORDER.join("|")
+});
+
+function make_trial(stim) {
+  const fixation = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: '<div class="fixation">+</div>',
+    choices: "NO_KEYS",
+    trial_duration: FIXATION_MS
+  };
+
+  const image = {
+    type: jsPsychImageKeyboardResponse,
+    stimulus: IMAGE_FOLDER + stim.code + IMAGE_EXTENSION,
+    choices: "NO_KEYS",
+    trial_duration: STIMULUS_MS,
+    stimulus_height: 400,
+    maintain_aspect_ratio: true,
+    data: {
+      task: "stimulus_view",
+      stim_code: stim.code,
+      stim_sex: stim.sex,
+      stim_emotion: stim.emotion
+    }
+  };
+
+  const blank = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: "",
+    choices: "NO_KEYS",
+    trial_duration: BLANK_MS
+  };
+
+  const emotion_choice = {
+    type: jsPsychHtmlButtonResponse,
+    stimulus: "<h3>Which emotion does the body express?</h3>",
+    choices: PARTICIPANT_BUTTONS,
+    data: {
+      task: "emotion_choice",
+      stim_code: stim.code,
+      stim_sex: stim.sex,
+      stim_emotion: stim.emotion
+    },
+    on_finish: function (data) {
+      const choice_label = PARTICIPANT_BUTTONS[data.response];
+      data.response_label = choice_label;
+      data.response_emotion = EMOTION_TO_CODE[choice_label] || "other";
+
+      // Tag whether the response was a self-conscious-emotion
+      // attribution (Pride or Shame). These labels have no stimulus
+      // exemplar in BEAST and form the dependent variable for the
+      // pre-registered H2 interaction test.
+      data.is_self_conscious_attribution =
+        SELF_CONSCIOUS_LABELS.has(choice_label);
+
+      // Coarse attribution-type tag for analysis convenience.
+      if (choice_label === "Other / not a person") {
+        data.attributed_emotion_type = "other";
+      } else if (SELF_CONSCIOUS_LABELS.has(choice_label)) {
+        data.attributed_emotion_type = "self_conscious";
+      } else {
+        data.attributed_emotion_type = "basic";
+      }
+
+      // "Correct" is well-defined only for filler trials and for
+      // basic-emotion responses to BEAST stimuli. Pride/Shame
+      // attributions are NEVER coded as correct or incorrect —
+      // they are mis-attributions by construction, and are the DV
+      // for H2 rather than an accuracy measure. They are stored
+      // as null so analysis scripts treat them separately.
+      if (stim.emotion === "filler") {
+        data.correct = (choice_label === "Other / not a person");
+      } else if (data.is_self_conscious_attribution) {
+        data.correct = null;
+      } else {
+        data.correct = (data.response_emotion === stim.emotion);
+      }
+    }
+  };
+
+  const intensity = {
+    type: jsPsychSurveyLikert,
+    questions: [{
+      prompt: "How intense was the emotion you saw?",
+      labels: ["1 (very weak)", "2", "3 (neutral)", "4", "5 (very strong)"],
+      required: true
+    }],
+    data: {
+      task: "intensity_rating",
+      stim_code: stim.code,
+      stim_sex: stim.sex,
+      stim_emotion: stim.emotion
+    }
+  };
+
+  const gender_check = {
+    type: jsPsychHtmlButtonResponse,
+    stimulus: "<h3>Did the body appear …</h3>",
+    choices: ["Female", "Male", "Cannot tell / not a person"],
+    data: {
+      task: "gender_check",
+      stim_code: stim.code,
+      stim_sex: stim.sex,
+      stim_emotion: stim.emotion
+    },
+    on_finish: function (data) {
+      const labels = ["female", "male", "unsure"];
+      data.perceived_sex = labels[data.response];
+      data.gender_match  = (data.perceived_sex === stim.sex);
+    }
+  };
+
+  return [fixation, image, blank, emotion_choice, intensity, gender_check];
+}
+
+
+/* =========================================================================
+   SECTION G — BUILD THE FULL TRIAL LIST
+   ========================================================================= */
+
+// Combine emotion stimuli with fillers
+const all_items = STIMULI.concat(FILLERS);
+
+// Shuffle the order so each participant sees a different sequence
+const trial_order = jsPsych.randomization.shuffle(all_items);
+
+// Flatten each trial into the master timeline
+let main_trials = [];
+trial_order.forEach(s => { main_trials = main_trials.concat(make_trial(s)); });
+
+
+/* =========================================================================
+   SECTION H — PRACTICE TRIAL (one filler so participants learn the flow)
+   ========================================================================= */
+
+const practice_intro = {
+  type: jsPsychHtmlButtonResponse,
+  stimulus: "<h3>Practice trial</h3><p>Let us begin with one practice trial so you can get used to the procedure.</p>",
+  choices: ["Start practice"]
+};
+
+// This selects 1 random item from your FILLERS array
+const random_filler = jsPsych.randomization.sampleWithoutReplacement(FILLERS, 1)[0];
+const practice_trial = make_trial(random_filler);
+
+const practice_end = {
+  type: jsPsychHtmlButtonResponse,
+  stimulus: "<h3>Practice complete.</h3><p>The main study will begin when you are ready.</p>",
+  choices: ["Begin main study"]
+};
+
+
+/* =========================================================================
+   SECTION I — DEBRIEF, SAVE DATA, EXIT
+   ========================================================================= */
+
+// Post-task label-confidence check. Asks participants to rate, on a
+// 1-5 scale, how confident they were in the meaning of each emotion
+// label they saw during the task. Provides a per-participant
+// data-quality screen for analysis (e.g. exclude participants who
+// rated their understanding of any label below 3, or downweight
+// trials with low-confidence labels).
+const label_confidence = {
+  type: jsPsychSurveyLikert,
+  preamble: `
+    <div class="instructions">
+      <h3>One last short question.</h3>
+      <p>For each emotion label below, please rate how confident you were
+         in its meaning while doing the task.</p>
+    </div>`,
+  questions: [
+    { prompt: "Happy",   labels: ["1 (not at all)", "2", "3", "4", "5 (very)"], required: true },
+    { prompt: "Sad",     labels: ["1 (not at all)", "2", "3", "4", "5 (very)"], required: true },
+    { prompt: "Angry",   labels: ["1 (not at all)", "2", "3", "4", "5 (very)"], required: true },
+    { prompt: "Fearful", labels: ["1 (not at all)", "2", "3", "4", "5 (very)"], required: true },
+    { prompt: "Pride",   labels: ["1 (not at all)", "2", "3", "4", "5 (very)"], required: true },
+    { prompt: "Shame",   labels: ["1 (not at all)", "2", "3", "4", "5 (very)"], required: true }
+  ],
+  data: { task: "label_confidence" }
+};
+
+const debrief = {
+  type: jsPsychHtmlButtonResponse,
+  stimulus: `
+    <div class="instructions">
+      <h3>Thank you for taking part.</h3>
+      <p>This study examined how observers decode emotion from body posture and
+         whether the perceived gender of the body changes that decoding.</p>
+      <p>If you have any questions, please feel free to contact the research team:</p>
+       <p>Dr. Rakesh Sengupta: rakesh.sengupta@krea.edu.in</p>
+       <p>Ananyaa Premanand: ananyaa_premanand.sias23@krea.ac.in</p>
+       <p>Abeer Shaikh: abeer_shaikh.sias23@krea.ac.in</p>
+       <p>Deeksha Narayan: deeksha_narayan.sias23@krea.ac.in</p>
+       <p>Sanika Dalmia: sanika_dalmia.sias23@krea.ac.in</p>
+       <p>Tanisha Senthilkumar: tanisha_senthilkumar.sias23@krea.ac.in</p>
+    </div>`,
+  choices: ["Submit my data"]
+};
+
+// Save data to DataPipe (free, OSF-backed). Replace the experiment ID in (A.1).
+const save_data = {
+  type: jsPsychPipe,
+  action: "save",
+  experiment_id: "lYIFMlnHKJut", // Your Experiment ID from DataPipe
+  filename: `${participant_id}.csv`,
+  data_string: () => jsPsych.data.get().csv()
+};
+
+// Local download fallback — useful while you are testing offline.
+// Comment out save_data above and use this trial instead during piloting.
+const local_save = {
+  type: jsPsychCallFunction,
+  func: function () {
+    jsPsych.data.get().localSave('csv', `${participant_id}.csv`);
+  }
+};
+
+const exit_fullscreen = {
+  type: jsPsychFullscreen,
+  fullscreen_mode: false,
+  delay_after: 0
+};
+
+
+/* =========================================================================
+   SECTION J — PUT THE TIMELINE TOGETHER AND RUN
+   ========================================================================= */
+
+const goodbye = {
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus: `
+    <div style="font-size: 20px;">
+      <p>Data saved successfully!</p>
+      <p>Thank you for your participation. You can now close this tab.</p>
+    </div>`,
+  choices: "NO_KEYS" // This prevents the experiment from ending/closing automatically
+};
+
+const timeline = [
+  preload_trial,
+  welcome,
+  consent,
+  demographics,
+  enter_fullscreen,
+  instructions,
+  label_orientation,
+  practice_intro,
+  ...practice_trial,
+  practice_end,
+  ...main_trials,
+  label_confidence,
+  debrief,
+  save_data,        // remove this and uncomment local_save below if testing offline
+  // local_save,
+  exit_fullscreen,
+  goodbye
+];
+
+jsPsych.run(timeline);
+</script>
+</html>
